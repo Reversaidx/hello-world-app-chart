@@ -1,0 +1,45 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: {{ template "hello-world-app.fullname" . }}
+  labels:
+    app: {{ template "hello-world-app.name" . }}
+    chart: {{ template "hello-world-app.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ template "hello-world-app.name" . }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "hello-world-app.name" . }}
+        release: {{ .Release.Name }}
+    spec:
+     containers:
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+          {{- range $key, $value := .Values.env }}
+          - name: {{ $key | quote }}
+            value: {{ $value | quote }}
+          {{- end }}
+        resources:
+{{ toYaml .Values.resources | indent 12 }}
+        ports:
+{{- range $port := .Values.service.ports }}
+          - name: {{ $port.name }}
+            containerPort: {{ $port.containerPort }}
+            protocol: {{ $port.protocol }}
+{{- end }}
+  {{- if .Values.mongo.enabled }}
+      - name: mongo
+        image: "{{ .Values.mongo.image }}"
+        ports:
+          - name: mongo-default
+            containerPort: 27017
+  {{- end }}
